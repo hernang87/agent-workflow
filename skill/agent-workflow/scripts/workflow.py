@@ -208,14 +208,14 @@ NODES = {node.id: node for node in (
     n("T3", "agent", "orchestrator", "gpt-5.6-luna", "xhigh", "read", "define acceptance criteria and non-goals", ("discovery",), ("acceptance",)),
     n("T4", "agent", "orchestrator", "gpt-5.6-luna", "xhigh", "read", "produce implementation and atomic commit plan", ("acceptance",), ("plan",)),
     n("approval-router", "router", "orchestrator", "gpt-5.6-luna", "high", "none", "route required plan approval", ("plan",)),
-    n("astra-plan", "agent", "escalation-reviewer", "gpt-6-astra", "high", "read", "independently adjudicate high-risk or ambiguous plan", ("plan",), ("judgment",)),
+    n("plan-adjudication", "agent", "escalation-reviewer", "gpt-5.6-sol", "high", "read", "independently adjudicate high-risk or ambiguous plan", ("plan",), ("judgment",)),
     n("T5", "human-gate", "human", "human", "n/a", "human", "approve, revise, reject, or abort plan", ("plan", "judgment")),
     n("T6", "agent", "implementer", "gpt-5.6-terra", "high", "write", "implement approved change and focused tests", ("plan",), ("source_change",), output_revision="implementation", idempotency="reconcile-before-reapply"),
     n("review-fanout", "fan-out", "orchestrator", "gpt-5.6-luna", "high", "none", "run ordinary and adversarial reviews", ("source_change",)),
     n("T7", "review", "reviewer", "gpt-5.6-sol", "medium", "read", "ordinary review of diff and proposed commit plan", ("source_change",), input_revision="implementation"),
     n("T8", "review", "adversarial-reviewer", "gpt-5.6-sol", "medium", "read", "try to disprove the implementation", ("source_change",), input_revision="implementation"),
     n("review-join", "join", "orchestrator", "gpt-5.6-luna", "xhigh", "none", "join same-revision reviews and evaluate progress", ("T7", "T8"), input_revision="implementation"),
-    n("astra-adjudication", "agent", "escalation-reviewer", "gpt-6-astra", "high", "read", "adjudicate material reviewer disagreement", ("T7", "T8"), input_revision="implementation"),
+    n("review-adjudication", "agent", "escalation-reviewer", "gpt-5.6-sol", "high", "read", "adjudicate material reviewer disagreement", ("T7", "T8"), input_revision="implementation"),
     n("T9", "validator", "acceptance-verifier", "gpt-5.6-sol", "medium", "read", "run repository validation", ("review-join",), input_revision="implementation"),
     n("T10", "validator", "acceptance-verifier", "gpt-5.6-sol", "medium", "read", "run real focused acceptance scenario", ("T9",), input_revision="implementation"),
     n("T11", "agent", "implementer", "gpt-5.6-terra", "high", "write", "resolve only must-fix findings", ("findings",), output_revision="implementation", idempotency="reconcile-before-reapply"),
@@ -235,16 +235,16 @@ EDGES = (
     Edge("L3", "pass", "L4"), Edge("L4", "pass", "merge-ready"),
     Edge("T1", "pass", "T2"), Edge("T1", "baseline-fail", "human-gate"), Edge("T2", "pass", "T3"),
     Edge("T3", "pass", "T4"), Edge("T4", "pass", "approval-router"),
-    Edge("approval-router", "required", "astra-plan"), Edge("approval-router", "not-required", "T6"),
-    Edge("astra-plan", "pass", "T5"), Edge("T5", "approved", "T6"), Edge("T5", "revise", "T3"),
+    Edge("approval-router", "required", "plan-adjudication"), Edge("approval-router", "not-required", "T6"),
+    Edge("plan-adjudication", "pass", "T5"), Edge("T5", "approved", "T6"), Edge("T5", "revise", "T3"),
     Edge("T5", "rejected", "awaiting-human"), Edge("T5", "abort", "aborted"),
     Edge("T6", "pass", "review-fanout"), Edge("review-fanout", "ordinary", "T7"),
     Edge("review-fanout", "adversarial", "T8"), Edge("T7", "complete", "review-join"),
     Edge("T8", "complete", "review-join"),
-    Edge("review-join", "must-fix", "T11"), Edge("review-join", "conflict", "astra-adjudication"),
+    Edge("review-join", "must-fix", "T11"), Edge("review-join", "conflict", "review-adjudication"),
     Edge("review-join", "no-progress", "human-gate"), Edge("review-join", "clean", "T9"),
-    Edge("astra-adjudication", "resolved-clean", "T9"), Edge("astra-adjudication", "resolved-must-fix", "T11"),
-    Edge("astra-adjudication", "human-required", "human-gate"), Edge("T11", "pass", "review-fanout"),
+    Edge("review-adjudication", "resolved-clean", "T9"), Edge("review-adjudication", "resolved-must-fix", "T11"),
+    Edge("review-adjudication", "human-required", "human-gate"), Edge("T11", "pass", "review-fanout"),
     Edge("T9", "pass", "T10"), Edge("T9", "actionable-failure", "T11"), Edge("T9", "blocker", "human-gate"),
     Edge("T10", "pass", "T12"), Edge("T10", "fail", "human-gate"), Edge("T10", "waiver-required", "human-waiver"),
     Edge("human-waiver", "approved", "T12"), Edge("human-waiver", "rejected", "awaiting-human"),
@@ -864,7 +864,7 @@ def mermaid() -> str:
     for edge in EDGES:
         lines.append(f"    {edge.source.replace('-', '_')} -->|{edge.outcome}| {edge.target.replace('-', '_')}")
     lines += ["    classDef human fill:#fff3cd,stroke:#9a6700", "    class T5,human_gate,human_waiver human",
-              "    classDef escalation fill:#f3e8ff,stroke:#7e22ce", "    class astra_plan,astra_adjudication escalation"]
+              "    classDef escalation fill:#f3e8ff,stroke:#7e22ce", "    class plan_adjudication,review_adjudication escalation"]
     return "\n".join(lines) + "\n"
 
 

@@ -67,8 +67,11 @@ class WorkflowTests(unittest.TestCase):
 
     def test_graph_and_mermaid_keep_canonical_review_routes(self):
         self.assertEqual(NODES["L3"].model, "gpt-5.6-terra")
+        self.assertEqual(NODES["plan-adjudication"].model, "gpt-5.6-sol")
+        self.assertEqual(NODES["review-adjudication"].model, "gpt-5.6-sol")
         self.assertTrue(any(e.source == "T9" and e.target == "T10" for e in EDGES))
-        self.assertIn("review_join -->|conflict| astra_adjudication", mermaid())
+        graph = mermaid()
+        self.assertIn("review_join -->|conflict| review_adjudication", graph)
 
     def test_low_risk_path_uses_executors_and_reaches_merge_ready(self):
         with tempfile.TemporaryDirectory() as directory:

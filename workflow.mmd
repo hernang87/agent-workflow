@@ -9,14 +9,14 @@ flowchart TD
     T3["T3 define acceptance criteria and non-goals"]
     T4["T4 produce implementation and atomic commit plan"]
     approval_router["route required plan approval"]
-    astra_plan["independently adjudicate high-risk or ambiguous plan"]
+    plan_adjudication["independently adjudicate high-risk or ambiguous plan"]
     T5["T5 approve, revise, reject, or abort plan"]
     T6["T6 implement approved change and focused tests"]
     review_fanout["run ordinary and adversarial reviews"]
     T7["T7 ordinary review of diff and proposed commit plan"]
     T8["T8 try to disprove the implementation"]
     review_join["join same-revision reviews and evaluate progress"]
-    astra_adjudication["adjudicate material reviewer disagreement"]
+    review_adjudication["adjudicate material reviewer disagreement"]
     T9["T9 run repository validation"]
     T10["T10 run real focused acceptance scenario"]
     T11["T11 resolve only must-fix findings"]
@@ -40,9 +40,9 @@ flowchart TD
     T2 -->|pass| T3
     T3 -->|pass| T4
     T4 -->|pass| approval_router
-    approval_router -->|required| astra_plan
+    approval_router -->|required| plan_adjudication
     approval_router -->|not-required| T6
-    astra_plan -->|pass| T5
+    plan_adjudication -->|pass| T5
     T5 -->|approved| T6
     T5 -->|revise| T3
     T5 -->|rejected| awaiting_human
@@ -53,12 +53,12 @@ flowchart TD
     T7 -->|complete| review_join
     T8 -->|complete| review_join
     review_join -->|must-fix| T11
-    review_join -->|conflict| astra_adjudication
+    review_join -->|conflict| review_adjudication
     review_join -->|no-progress| human_gate
     review_join -->|clean| T9
-    astra_adjudication -->|resolved-clean| T9
-    astra_adjudication -->|resolved-must-fix| T11
-    astra_adjudication -->|human-required| human_gate
+    review_adjudication -->|resolved-clean| T9
+    review_adjudication -->|resolved-must-fix| T11
+    review_adjudication -->|human-required| human_gate
     T11 -->|pass| review_fanout
     T9 -->|pass| T10
     T9 -->|actionable-failure| T11
@@ -87,4 +87,4 @@ flowchart TD
     classDef human fill:#fff3cd,stroke:#9a6700
     class T5,human_gate,human_waiver human
     classDef escalation fill:#f3e8ff,stroke:#7e22ce
-    class astra_plan,astra_adjudication escalation
+    class plan_adjudication,review_adjudication escalation

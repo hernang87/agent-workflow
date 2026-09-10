@@ -85,12 +85,12 @@ report = run.final_report()
 
 ## High-risk or ambiguous plan approval
 
-At `approval-router`, route `"required"`, activate `astra-plan`, and route
+At `approval-router`, route `"required"`, activate `plan-adjudication`, and route
 `"pass"`. The next route opens `T5`; stop and hand the gate to a human.
 
 ```python
-run.activate(); run.route("required")        # approval-router -> astra-plan
-run.activate(); run.route("pass")            # astra-plan -> T5 gate
+run.activate(); run.route("required")        # approval-router -> plan-adjudication
+run.activate(); run.route("pass")            # plan-adjudication -> T5 gate
 token = run.take_approval_token()             # deliver out-of-band to human
 # stop; resume only after the human returns an explicit decision
 run.decide(token, "approved")                 # or "revise", "rejected", "abort"
@@ -115,7 +115,7 @@ run.route(outcome)
 ```
 
 If the join returns `"no-progress"`, stop at `human-gate`. Conflicting
-reviews route through `astra-adjudication`; follow its explicit outcome and
+reviews route through `review-adjudication`; follow its explicit outcome and
 stop if it routes to a human gate.
 
 ## Missing acceptance path and waiver
