@@ -1,14 +1,15 @@
 ---
 name: agent-workflow
-description: Route coding tasks through a repository's existing workflow.py orchestrator when it exposes Orchestrator, NODES, and EDGES; do not apply this skill when that workflow is absent.
+description: Route coding tasks through the bundled workflow harness with Orchestrator, NODES, and EDGES.
 ---
 
 # Agent Workflow
 
-Use this skill when the repository contains `workflow.py` with `Orchestrator`,
-`NODES`, and `EDGES`, or when the user explicitly asks for this workflow.
-Import and use that repository's implementation directly. Do not invent a
-parallel graph, CLI, or replacement workflow when the file is absent.
+Use this skill when the user explicitly asks for this workflow or when the task
+needs its risk-gated execution model. Load `scripts/workflow.py` from this
+installed skill directory. The target repository does not need to contain a
+`workflow.py`; it provides only an immutable `ScopeManifest` and callbacks for
+implementation, validation, acceptance, and commit nodes.
 
 The `Orchestrator` is the only graph and task-state controller. Durable state
 is SQLite (WAL with foreign keys and busy timeouts); JSON checkpoints and JSONL

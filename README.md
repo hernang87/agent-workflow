@@ -1,11 +1,11 @@
 # Agent Workflow
 
-Risk-gated workflow orchestration for bounded software changes, plus a Codex
-skill that uses the orchestrator when it is present in a repository.
+Risk-gated workflow orchestration for bounded software changes, bundled as a
+Codex skill.
 
 ## Contents
 
-- `workflow.py` — SQLite-backed `Orchestrator`, canonical `NODES` and `EDGES`, scope manifests, leases, risk routing, human gates, reviews, acceptance checks, commit evidence, and final reporting.
+- `skill/agent-workflow/scripts/workflow.py` — SQLite-backed `Orchestrator`, canonical `NODES` and `EDGES`, scope manifests, leases, risk routing, human gates, reviews, acceptance checks, commit evidence, and final reporting.
 - `test_workflow.py` — unit tests for the graph and state invariants.
 - `workflow.mmd` — Mermaid diagram generated from the canonical graph.
 - `skill/agent-workflow/` — installable Codex skill and Python API examples.
@@ -13,10 +13,21 @@ skill that uses the orchestrator when it is present in a repository.
 ## Quick start
 
 ```python
+import importlib.util
+import os
+import sys
 from pathlib import Path
-from workflow import Orchestrator, ScopeManifest
 
-scope = ScopeManifest("source-revision", ("src/workflow.py",), ("unit-tests",))
+skill_dir = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "skills" / "agent-workflow"
+spec = importlib.util.spec_from_file_location("agent_workflow_harness", skill_dir / "scripts" / "workflow.py")
+if spec is None or spec.loader is None:
+    raise ImportError(f"cannot load workflow harness from {skill_dir}")
+workflow = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = workflow
+spec.loader.exec_module(workflow)
+Orchestrator, ScopeManifest = workflow.Orchestrator, workflow.ScopeManifest
+
+scope = ScopeManifest("source-revision", ("src/example.py",), ("unit-tests",))
 run = Orchestrator("task-id", Path("/tmp/agent-workflow/workflow.db"), scope_manifest=scope,
                    executors={"implementation": implement, "validation": validate,
                               "acceptance": accept, "commit": verify_commit})
@@ -49,8 +60,8 @@ reject, waive, or abort the run.
 ## Codex skill
 
 The skill is also installed globally at `~/.codex/skills/agent-workflow`, so it
-can be considered in any repository that exposes a compatible `workflow.py`.
-It does not add a CLI or duplicate the workflow implementation.
+can be used from any target repository. Target repositories provide scope data
+and executor callbacks; they do not need a `workflow.py`.
 
 Validate the skill and run the tests with:
 

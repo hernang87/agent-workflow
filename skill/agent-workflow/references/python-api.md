@@ -1,8 +1,23 @@
-# `workflow.py` Python API
+# Bundled workflow harness Python API
 
-These examples assume the repository's `workflow.py` is importable and
-`Path` is imported. Keep durable state outside the source tree; the
-orchestrator enforces that boundary.
+These examples load the harness from the installed skill directory. Keep
+durable state outside the source tree; the orchestrator enforces that boundary.
+
+```python
+import importlib.util
+import os
+import sys
+from pathlib import Path
+
+skill_dir = Path(os.environ.get("CODEX_HOME", Path.home() / ".codex")) / "skills" / "agent-workflow"
+spec = importlib.util.spec_from_file_location("agent_workflow_harness", skill_dir / "scripts" / "workflow.py")
+if spec is None or spec.loader is None:
+    raise ImportError(f"cannot load workflow harness from {skill_dir}")
+workflow = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = workflow
+spec.loader.exec_module(workflow)
+Orchestrator, ScopeManifest = workflow.Orchestrator, workflow.ScopeManifest
+```
 
 Every new run requires an immutable `ScopeManifest`. Provide callbacks for
 implementation, validation, acceptance, and commit nodes; missing callbacks
@@ -12,7 +27,7 @@ explicitly sets `validation_mode="full"`.
 ## Common start and low-risk flow
 
 ```python
-scope = ScopeManifest("source-revision", ("src/workflow.py",), ("unit-tests",))
+scope = ScopeManifest("source-revision", ("src/example.py",), ("unit-tests",))
 run = Orchestrator("task-id", Path("/tmp/agent-workflow/workflow.db"), scope_manifest=scope,
                    executors={"implementation": implement, "validation": validate,
                               "acceptance": accept, "commit": verify_commit})

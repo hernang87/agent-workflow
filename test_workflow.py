@@ -1,11 +1,26 @@
 from pathlib import Path
+import importlib.util
+import os
 import sqlite3
+import sys
 import tempfile
 import unittest
 
-from workflow import (
-    Budget, Context, EDGES, NODES, Orchestrator, Result, ReviewAgent,
-    ScopeManifest, StaleResultError, LeaseError, mermaid,
+SKILL_HARNESS = Path(__file__).parent / "skill" / "agent-workflow" / "scripts" / "workflow.py"
+SPEC = importlib.util.spec_from_file_location("agent_workflow_harness", SKILL_HARNESS)
+if SPEC is None or SPEC.loader is None:
+    raise ImportError(f"cannot load workflow harness from {SKILL_HARNESS}")
+workflow = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = workflow
+SPEC.loader.exec_module(workflow)
+
+Budget, Context, EDGES, NODES, Orchestrator, Result, ReviewAgent = (
+    workflow.Budget, workflow.Context, workflow.EDGES, workflow.NODES,
+    workflow.Orchestrator, workflow.Result, workflow.ReviewAgent,
+)
+ScopeManifest, StaleResultError, LeaseError, mermaid = (
+    workflow.ScopeManifest, workflow.StaleResultError, workflow.LeaseError,
+    workflow.mermaid,
 )
 
 
@@ -18,7 +33,7 @@ def accepting(context, state, attempt):
 
 
 def scope(revision="r1"):
-    return ScopeManifest(revision, ("workflow.py",), ("unit-tests",))
+    return ScopeManifest(revision, ("src/example.py",), ("unit-tests",))
 
 
 class WorkflowTests(unittest.TestCase):
@@ -76,6 +91,24 @@ class WorkflowTests(unittest.TestCase):
             self.assertEqual(result.status, "blocked")
             self.assertEqual(run.state.tasks["L1"].status, "blocked")
             self.assertEqual(run.route("blocked"), "human-gate")
+
+    def test_harness_runs_from_repo_without_workflow_module(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory) / "unrelated-repo"
+            repo.mkdir()
+            self.assertFalse((repo / "workflow.py").exists())
+            previous_cwd = Path.cwd()
+            try:
+                os.chdir(repo)
+                run = self.make(directory, "low")
+                self.run_node(run)
+                self.run_node(run)
+                run.context.source_text = "new source"
+                self.run_node(run)
+                self.run_node(run)
+                self.assertEqual(run.state.status, "merge-ready")
+            finally:
+                os.chdir(previous_cwd)
 
     def test_sqlite_resume_and_lease(self):
         with tempfile.TemporaryDirectory() as directory:
