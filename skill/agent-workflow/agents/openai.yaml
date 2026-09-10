@@ -1,0 +1,7 @@
+interface:
+  display_name: "Agent Workflow"
+  short_description: "Route coding work through workflow.py safely"
+  default_prompt: "Use $agent-workflow to route this coding task through the repository's existing workflow.py orchestrator."
+
+policy:
+  allow_implicit_invocation: true

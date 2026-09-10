@@ -1,0 +1,80 @@
+flowchart TD
+    preflight["classify risk with written evidence"]
+    L1["L1 inspect affected flow and establish baseline"]
+    L2["L2 define bounded change and acceptance evidence"]
+    L3["L3 implement and test the low-risk change"]
+    L4["L4 verify, create atomic commits, and report"]
+    T1["T1 record risk classification and establish baseline"]
+    T2["T2 discover repository and trace affected flow"]
+    T3["T3 define acceptance criteria and non-goals"]
+    T4["T4 produce implementation and atomic commit plan"]
+    approval_router["route required plan approval"]
+    astra_plan["independently adjudicate high-risk or ambiguous plan"]
+    T5["T5 approve, revise, reject, or abort plan"]
+    T6["T6 implement approved change and focused tests"]
+    review_fanout["run ordinary and adversarial reviews"]
+    T7["T7 ordinary review of diff and proposed commit plan"]
+    T8["T8 try to disprove the implementation"]
+    review_join["join same-revision reviews and evaluate progress"]
+    astra_adjudication["adjudicate material reviewer disagreement"]
+    T9["T9 run repository validation"]
+    T10["T10 run real focused acceptance scenario"]
+    T11["T11 resolve only must-fix findings"]
+    human_waiver["explicitly waive missing acceptance path"]
+    T12["T12 construct and verify atomic commits and committed HEAD"]
+    T13["T13 audit task list and definition of done"]
+    human_gate["resolve blocker, conflict, or no-progress condition"]
+    merge_ready["mark the run merge-ready"]
+    awaiting_human["wait without concealing unresolved state"]
+    aborted["abort while preserving evidence"]
+    preflight -->|low| L1
+    preflight -->|medium| T1
+    preflight -->|high| T1
+    L1 -->|pass| L2
+    L1 -->|baseline-fail| human_gate
+    L2 -->|pass| L3
+    L3 -->|pass| L4
+    L4 -->|pass| merge_ready
+    T1 -->|pass| T2
+    T1 -->|baseline-fail| human_gate
+    T2 -->|pass| T3
+    T3 -->|pass| T4
+    T4 -->|pass| approval_router
+    approval_router -->|required| astra_plan
+    approval_router -->|not-required| T6
+    astra_plan -->|pass| T5
+    T5 -->|approved| T6
+    T5 -->|revise| T3
+    T5 -->|rejected| awaiting_human
+    T5 -->|abort| aborted
+    T6 -->|pass| review_fanout
+    review_fanout -->|ordinary| T7
+    review_fanout -->|adversarial| T8
+    T7 -->|complete| review_join
+    T8 -->|complete| review_join
+    review_join -->|must-fix| T11
+    review_join -->|conflict| astra_adjudication
+    review_join -->|no-progress| human_gate
+    review_join -->|clean| T9
+    astra_adjudication -->|resolved-clean| T9
+    astra_adjudication -->|resolved-must-fix| T11
+    astra_adjudication -->|human-required| human_gate
+    T11 -->|pass| review_fanout
+    T9 -->|pass| T10
+    T9 -->|actionable-failure| T11
+    T9 -->|blocker| human_gate
+    T10 -->|pass| T12
+    T10 -->|fail| human_gate
+    T10 -->|waiver-required| human_waiver
+    human_waiver -->|approved| T12
+    human_waiver -->|rejected| awaiting_human
+    T12 -->|pass| T13
+    T13 -->|pass| merge_ready
+    human_gate -->|resume| T1
+    human_gate -->|revise| T3
+    human_gate -->|rejected| awaiting_human
+    human_gate -->|abort| aborted
+    classDef human fill:#fff3cd,stroke:#9a6700
+    class T5,human_gate,human_waiver human
+    classDef escalation fill:#f3e8ff,stroke:#7e22ce
+    class astra_plan,astra_adjudication escalation
