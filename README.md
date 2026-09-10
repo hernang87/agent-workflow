@@ -15,8 +15,9 @@ Codex skill.
 Copy the bundled skill into the Codex skills directory:
 
 ```bash
-mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
-cp -R skill/agent-workflow "${CODEX_HOME:-$HOME/.codex}/skills/agent-workflow"
+install_dir="${CODEX_HOME:-$HOME/.codex}/skills/agent-workflow"
+mkdir -p "$install_dir"
+cp -R skill/agent-workflow/. "$install_dir/"
 ```
 
 Restart Codex after installation so it discovers the skill. Target repositories
@@ -71,13 +72,12 @@ reject, waive, or abort the run.
 
 ## Codex skill
 
-The skill is also installed globally at `~/.codex/skills/agent-workflow`, so it
-can be used from any target repository. Target repositories provide scope data
-and executor callbacks; they do not need a `workflow.py`.
+The installation above makes the skill available from any target repository.
+Target repositories provide scope data and executor callbacks; they do not need
+a `workflow.py`.
 
-Validate the skill and run the tests with:
+Run the tests with:
 
 ```bash
-python3 /Users/hernan/ai-tools/skills/.system/skill-creator/scripts/quick_validate.py skill/agent-workflow
 python3 -m unittest -v test_workflow.py
 ```
