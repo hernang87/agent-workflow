@@ -4,10 +4,18 @@ These examples assume the repository's `workflow.py` is importable and
 `Path` is imported. Keep durable state outside the source tree; the
 orchestrator enforces that boundary.
 
+Every new run requires an immutable `ScopeManifest`. Provide callbacks for
+implementation, validation, acceptance, and commit nodes; missing callbacks
+return `blocked`. Validation uses affected targets unless the manifest
+explicitly sets `validation_mode="full"`.
+
 ## Common start and low-risk flow
 
 ```python
-run = Orchestrator("task-id", Path("/tmp/agent-workflow/task.json"))
+scope = ScopeManifest("source-revision", ("src/workflow.py",), ("unit-tests",))
+run = Orchestrator("task-id", Path("/tmp/agent-workflow/workflow.db"), scope_manifest=scope,
+                   executors={"implementation": implement, "validation": validate,
+                              "acceptance": accept, "commit": verify_commit})
 run.context.request = request
 run.context.risk = "low"
 run.activate()                 # preflight
@@ -114,8 +122,8 @@ acceptance validation unless the human explicitly approves it.
 
 ## Resume and completion checks
 
-After a process restart, load the checkpoint with
-`Orchestrator.resume(Path("/tmp/agent-workflow/task.json"))`. If a gate is
+After a process restart, load the SQLite store with
+`Orchestrator.resume(Path("/tmp/agent-workflow/workflow.db"))`. If a gate is
 pending, call `reissue_gate()` and wait for the newly issued human decision.
 Do not reuse an old token or bypass the gate.
 

@@ -74,6 +74,16 @@ flowchart TD
     human_gate -->|revise| T3
     human_gate -->|rejected| awaiting_human
     human_gate -->|abort| aborted
+    L1 -->|blocked| human_gate
+    L3 -->|blocked| human_gate
+    L4 -->|blocked| human_gate
+    T1 -->|blocked| human_gate
+    T10 -->|blocked| human_gate
+    T11 -->|blocked| human_gate
+    T12 -->|blocked| human_gate
+    T13 -->|blocked| human_gate
+    T6 -->|blocked| human_gate
+    T9 -->|blocked| human_gate
     classDef human fill:#fff3cd,stroke:#9a6700
     class T5,human_gate,human_waiver human
     classDef escalation fill:#f3e8ff,stroke:#7e22ce

@@ -10,7 +10,10 @@ Use this skill when the repository contains `workflow.py` with `Orchestrator`,
 Import and use that repository's implementation directly. Do not invent a
 parallel graph, CLI, or replacement workflow when the file is absent.
 
-The `Orchestrator` is the only graph and task-state controller. Agents inspect,
+The `Orchestrator` is the only graph and task-state controller. Durable state
+is SQLite (WAL with foreign keys and busy timeouts); JSON checkpoints and JSONL
+audits are not supported. Each run requires an immutable `ScopeManifest`, and
+agents inspect,
 implement, review, and validate; route outcomes, mutate task state, open gates,
 persist checkpoints, and decide terminal status through the orchestrator.
 
@@ -18,6 +21,12 @@ Required operating rules:
 
 - Run preflight first, establish a baseline, classify risk from evidence, and
   route only through the canonical graph in `EDGES`.
+- Pass caller-owned executors for implementation, validation, acceptance, and
+  commit nodes. A missing executor must block; repository commands stay outside
+  this library. Validation defaults to affected targets and only a manifest
+  with `validation_mode="full"` may request repository-wide checks.
+- Keep the SQLite run lease while mutating state. A second owner must wait for
+  lease expiry or an explicit `close()` before resuming.
 - Before every write node (`L3`, `T6`, or `T11`), set `orchestrator.context.source_text`
   to the current source snapshot. This is required for the implementation
   revision and intended diff hash. Refresh it to the new source before a later

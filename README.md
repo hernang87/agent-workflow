@@ -5,7 +5,7 @@ skill that uses the orchestrator when it is present in a repository.
 
 ## Contents
 
-- `workflow.py` — durable `Orchestrator`, canonical `NODES` and `EDGES`, risk routing, human gates, reviews, acceptance checks, commit evidence, and final reporting.
+- `workflow.py` — SQLite-backed `Orchestrator`, canonical `NODES` and `EDGES`, scope manifests, leases, risk routing, human gates, reviews, acceptance checks, commit evidence, and final reporting.
 - `test_workflow.py` — unit tests for the graph and state invariants.
 - `workflow.mmd` — Mermaid diagram generated from the canonical graph.
 - `skill/agent-workflow/` — installable Codex skill and Python API examples.
@@ -14,9 +14,12 @@ skill that uses the orchestrator when it is present in a repository.
 
 ```python
 from pathlib import Path
-from workflow import Orchestrator
+from workflow import Orchestrator, ScopeManifest
 
-run = Orchestrator("task-id", Path("/tmp/agent-workflow/task.json"))
+scope = ScopeManifest("source-revision", ("src/workflow.py",), ("unit-tests",))
+run = Orchestrator("task-id", Path("/tmp/agent-workflow/workflow.db"), scope_manifest=scope,
+                   executors={"implementation": implement, "validation": validate,
+                              "acceptance": accept, "commit": verify_commit})
 run.context.request = "Describe the bounded change"
 run.context.risk = "low"
 run.activate()       # preflight
@@ -24,7 +27,9 @@ run.route("low")
 ```
 
 Continue through the routed nodes. Before a write node, set
-`run.context.source_text` to the current source snapshot. Before reporting
+`run.context.source_text` to the current source snapshot. Validation defaults
+to affected targets; use `validation_mode="full"` explicitly for repository-wide
+checks. Before reporting
 `merge-ready`, run acceptance validation, verify committed `HEAD`, record it
 with `record_commit(..., head_hash=...)`, and obtain `run.final_report()` after
 the terminal route.
@@ -37,6 +42,7 @@ For complete medium-risk, high-risk, review-fix, waiver, and resume flows, see
 High-risk or ambiguous plans pause at `T5`. Baseline failures, blockers,
 review no-progress, conflicts requiring judgment, failed acceptance, and
 missing acceptance paths can pause at `human-gate` or `human-waiver`. The
+SQLite store uses WAL, foreign keys, busy timeouts, and a per-run lease. The
 orchestrator issues a token; only an explicit human decision may resume,
 reject, waive, or abort the run.
 
