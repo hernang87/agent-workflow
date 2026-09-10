@@ -10,6 +10,18 @@ Codex skill.
 - `workflow.mmd` — Mermaid diagram generated from the canonical graph.
 - `skill/agent-workflow/` — installable Codex skill and Python API examples.
 
+## Installation
+
+Copy the bundled skill into the Codex skills directory:
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
+cp -R skill/agent-workflow "${CODEX_HOME:-$HOME/.codex}/skills/agent-workflow"
+```
+
+Restart Codex after installation so it discovers the skill. Target repositories
+provide scope data and executor callbacks; they do not need a `workflow.py`.
+
 ## Quick start
 
 ```python
